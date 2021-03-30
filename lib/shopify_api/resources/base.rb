@@ -1,6 +1,33 @@
 # frozen_string_literal: true
 require 'shopify_api/version'
 
+# https://github.com/rails/activeresource/blob/b80b4fbe3d44fd788c92d5286244dc09a2a12c4b/lib/active_resource/base.rb
+
+
+module ActiveResource
+  class Base
+
+    class_attribute :_collection_parser
+
+    class << self      
+
+      include ThreadsafeAttributes
+      threadsafe_attribute :_headers, :_connection, :_user, :_password, :_bearer_token, :_site, :_proxy
+      
+      # Sets the parser to use when a collection is returned.  The parser must be Enumerable.
+      def collection_parser=(parser_instance)
+        parser_instance = parser_instance.constantize if parser_instance.is_a?(String)
+        self._collection_parser = parser_instance
+      end
+
+      def collection_parser
+        self._collection_parser || ActiveResource::Collection
+      end
+    end
+
+  end
+end
+
 module ShopifyAPI
   class Base < ActiveResource::Base
     class InvalidSessionError < StandardError; end
@@ -102,7 +129,7 @@ module ShopifyAPI
           RUBY_EVAL
         end
       rescue => e
-        logger&.error("Couldn't set prefix: #{e}\n  #{code}")
+        logger.try(:error, "Couldn't set prefix: #{e}\n  #{code}")
         raise
       end
 

@@ -24,7 +24,7 @@ module ShopifyAPI
         end
 
         url = parts[0][/<(.*)>/, 1]
-        rel = parts[1][/rel="(.*)"/, 1]&.to_sym
+        rel = parts[1][/rel="(.*)"/, 1].try(:to_sym)
 
         url = URI.parse(url).request_uri
         LinkHeader.new(url, rel)

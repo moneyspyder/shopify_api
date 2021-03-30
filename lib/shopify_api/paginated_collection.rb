@@ -4,8 +4,8 @@ module ShopifyAPI
   class PaginatedCollection < ActiveResource::Collection
     module CollectionPagination
       def initialize(args)
-        @next_url = pagination_link_headers.next_link&.url&.to_s
-        @previous_url = pagination_link_headers.previous_link&.url&.to_s
+        @next_url = pagination_link_headers.try(:next_link).try(:url).try(:to_s)
+        @previous_url = pagination_link_headers.try(:previous_link).try(:url).try(:to_s)
         super(args)
       end
 
