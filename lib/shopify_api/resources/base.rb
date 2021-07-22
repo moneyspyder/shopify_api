@@ -479,6 +479,7 @@ module ActiveResource
       def collection_parser
         self._collection_parser || ActiveResource::Collection
       end
+
     end
 
   end
@@ -625,7 +626,7 @@ module ShopifyAPI
         unless ShopifyAPI::Base.api_version >= available_in_version
           raise NotImplementedError, "The minimum supported version is #{minimum_version}."
         end
-      end
+      end    
 
       private
 
@@ -635,6 +636,64 @@ module ShopifyAPI
         self.early_july_pagination = true
       end
     end
+
+    # A method to manually load attributes from a \hash. Recursively loads collections of
+    # resources. This method is called in +initialize+ and +create+ when a \hash of attributes
+    # is provided.
+    #
+    # ==== Examples
+    #   my_attrs = {:name => 'J&J Textiles', :industry => 'Cloth and textiles'}
+    #   my_attrs = {:name => 'Marty', :colors => ["red", "green", "blue"]}
+    #
+    #   the_supplier = Supplier.find(:first)
+    #   the_supplier.name # => 'J&M Textiles'
+    #   the_supplier.load(my_attrs)
+    #   the_supplier.name('J&J Textiles')
+    #
+    #   # These two calls are the same as Supplier.new(my_attrs)
+    #   my_supplier = Supplier.new
+    #   my_supplier.load(my_attrs)
+    #
+    #   # These three calls are the same as Supplier.create(my_attrs)
+    #   your_supplier = Supplier.new
+    #   your_supplier.load(my_attrs)
+    #   your_supplier.save
+    def load(attributes, remove_root = false, persisted = false)
+      unless attributes.respond_to?(:to_hash)
+        raise ArgumentError, "expected attributes to be able to convert to Hash, got #{attributes.inspect}"
+      end
+
+      attributes = attributes.to_hash
+      @prefix_options, attributes = split_options(attributes)
+
+      if attributes.keys.size == 1
+        remove_root = self.class.element_name == attributes.keys.first.to_s
+      end
+
+      attributes = Formats.remove_root(attributes) if remove_root
+
+      attributes.each do |key, value|
+        @attributes[key.to_s] =
+          case value
+          when Array
+            resource = nil
+            value.map do |attrs|
+              if attrs.is_a?(Hash)
+                resource ||= find_or_create_resource_for_collection(key)
+                resource.new(attrs, persisted)
+              else
+                attrs.duplicable? ? attrs.dup : attrs
+              end
+            end
+          when Hash
+            resource = find_or_create_resource_for(key)
+            resource.new(value, persisted)
+          else
+            value.duplicable? ? value.dup : value
+          end
+      end
+      self
+    end      
 
     def persisted?
       !id.nil?
