@@ -670,7 +670,7 @@ module ShopifyAPI
         remove_root = self.class.element_name == attributes.keys.first.to_s
       end
 
-      attributes = Formats.remove_root(attributes) if remove_root
+      attributes = ::ActiveResource::Formats.remove_root(attributes) if remove_root
 
       attributes.each do |key, value|
         @attributes[key.to_s] =
