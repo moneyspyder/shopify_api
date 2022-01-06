@@ -1,0 +1,11 @@
+name: shopify-api
+
+type: ruby
+
+up:
+  - ruby: "3.0"
+  - bundler
+
+commands:
+  test:
+    run: bundle exec rake test
